@@ -3,74 +3,74 @@
 ![Version](https://img.shields.io/github/v/release/fordik130/fk-hub?style=flat-square&color=blue)
 ![License](https://img.shields.io/github/license/fordik130/fk-hub?style=flat-square&color=green)
 
-A compact and fast tool for comprehensive Windows optimization and network configuration. Combines useful system tweaks, service management, and junk removal into a single minimalist interface.
+Компактный и быстрый инструмент для комплексной оптимизации Windows и настройки сети. Объединяет полезные системные твики, управление службами и очистку мусора в едином минималистичном интерфейсе.
 
 ---
 
-## 🎉 Support Me
+## 🎉 Поддержать меня
 
 [<img src="https://img.shields.io/badge/DonationAlerts-F58220?style=for-the-badge&logo=donationalerts&logoColor=white" alt="DonationAlerts">](https://www.donationalerts.com/r/fordik130)
 
 ---
 
 > [!CAUTION]
-> ### Antivirus Warning
-> Antiviruses and SmartScreen may falsely flag the application as suspicious due to the lack of a digital signature and interaction with the Windows registry.
+> ### Реакция антивирусов
+> Антивирусы и SmartScreen могут ошибочно помечать приложение как подозрительное из-за отсутствия цифровой подписи и работы с системным реестром.
 > 
-> If the program is blocked upon startup:
-> 1. Click **"More info"** and select **"Run anyway"**.
-> 2. Add the executable file to your antivirus exclusions.
+> Если программа блокируется при запуске:
+> 1. Нажмите **«Подробнее»** и выберите **«Выполнить в любом случае»**.
+> 2. Добавьте исполняемый файл в исключения вашего антивируса.
 > 
-> Always scan files downloaded from the internet using [VirusTotal](https://www.virustotal.com/).
+> Всегда проверяйте файлы, скачиваемые из интернета, через [VirusTotal](https://www.virustotal.com/).
 
 ---
 
-## Navigation
+## Навигация
 
-- [🚀 Quick Start](#-quick-start)
-- [✨ Features](#-features)
-- [🛠️ Network & System](#️-network--system)
-- [⚙️ System Requirements](#️-system-requirements)
-
----
-
-## 🚀 Quick Start
-
-Go to the [releases](../../releases) page and download the latest installer:
-- `FK Hub.exe` (for Windows 10/11 x64)
-
-Upon first launch, the program will automatically request administrator privileges required to modify the registry and configure services. The application is managed through a user-friendly graphical interface.
+- [🚀 Быстрый старт](#-быстрый-старт)
+- [✨ Возможности](#-возможности)
+- [🛠️ Сеть и система](#️-сеть-и-система)
+- [⚙️ Системные требования](#️-системные-требования)
 
 ---
 
-## ✨ Features
+## 🚀 Быстрый старт
 
-- **Performance & Services:** Disable background UWP apps, unnecessary services (`WerSvc`, `MapsBroker`, `Delivery Optimization`), and Edge background startup.
-- **Privacy:** Disable telemetry, advertising ID, Copilot AI, and UAC screen dimming.
-- **Interface & Explorer:** Enable the classic right-click context menu, show file extensions and hidden folders, and hide unnecessary sidebar items.
-- **Gaming & Network:** Disable background GameDVR recording, remove multimedia network throttling, and enable a global high-precision timer.
-- **App Management:** One-click removal of preinstalled bloatware.
+Перейдите на страницу [релизов](../../releases) и скачайте актуальный установщик:
+- `FK Hub Setup x.x.x.exe` (для Windows 10/11 x64)
+
+При первом запуске программа автоматически запросит права администратора, необходимые для внесения изменений в реестр и настройки служб. Приложение управляется через удобный графический интерфейс.
 
 ---
 
-## 🛠️ Network & System
+## ✨ Возможности
 
-- Create a system restore point before applying tweaks
-- Quick Windows activation
-- Clear DNS cache and reset network stack (Winsock & IP)
-- Quick network latency test (Ping)
-- Check system file integrity (`CHKDSK`, `SFC`, `DISM`)
-- Install components (`DirectPlay`, `DirectX`, `Visual C++ 2005-2022`)
+- **Производительность и службы:** отключение фоновых UWP-приложений, ненужных служб (`WerSvc`, `MapsBroker`, `Delivery Optimization`) и фонового запуска Edge.
+- **Конфиденциальность:** отключение телеметрии, рекламного идентификатора, искусственного интеллекта Copilot и затемнения экрана UAC.
+- **Интерфейс и Проводник:** активация классического контекстного меню ПКМ, отображение расширений файлов и скрытых папок, скрытие ненужных элементов в боковой панели.
+- **Игры и сеть:** отключение фоновой записи GameDVR, снятие сетевого троттлинга мультимедиа и включение глобального высокоточного таймера.
+- **Управление программами:** быстрое удаление предустановленного мусора (bloatware) в один клик.
+
+---
+
+## 🛠️ Сеть и Система
+
+- Создание точки восстановления системы перед применением твиков
+- Быстрая активация Windows
+- Очистка DNS-кэша и сброс сетевого стека (Winsock & IP)
+- Быстрый тест сетевой задержки (Ping)
+- Проверка целостности системных файлов (`CHKDSK`, `SFC`, `DISM`)
+- Установка компонентов (`DirectPlay`, `DirectX`, `Visual C++ 2005-2022`)
 
 ---
 
 > [!IMPORTANT]
-> **Tweaks not applying or settings resetting?**
-> Make sure you are running the application as an administrator. Some registry parameters require `SYSTEM`/`Administrator` privileges to successfully modify.
+> **Программа не применяется или настройки сбрасываются?**
+> Убедитесь, что вы запускаете приложение от имени администратора. Часть параметров в реестре требует прав `SYSTEM` `Administrator` для успешного изменения.
 
 ---
 
-## ⚙️ System Requirements
+## ⚙️ Системные требования
 
-- Built with `electron-builder` powered by Node.js. Build configuration is set via `package.json` with a standard NSIS installer generator.
-- **Minimum Supported OS:** Windows 10 / 11 (x64)
+- Проект собирается с помощью `electron-builder` под управлением Node.js. Конфигурация сборки настроена через `package.json` с генерацией стандартного установщика (NSIS).
+- **Минимально поддерживаемые версии ОС:** Windows 10 / 11 (x64)
