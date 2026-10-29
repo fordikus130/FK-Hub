@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>FK Hub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="titlebar">
+        <div class="title">FK Hub</div>
+        <div class="win-btns">
+            <button onclick="ipcRenderer.send('win-min')">─</button>
+            <button class="close" onclick="ipcRenderer.send('win-close')">✕</button>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="sidebar">
+            <button class="nav-btn active" onclick="showTab('opt', this)">
+                <svg viewBox="0 0 24 24"><path d="M13 2L3 14h7v8l10-12h-7z"/></svg>
+                <span id="nav-opt">Оптимизация</span>
+            </button>
+            <button class="nav-btn" onclick="showTab('bloat', this)">
+                <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+                <span id="nav-bloat">Программы</span>
+            </button>
+            <button class="nav-btn" onclick="showTab('exp', this)">
+                <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <span id="nav-exp">Проводник</span>
+            </button>
+            <button class="nav-btn" onclick="showTab('diag', this)">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                <span id="nav-diag">Сеть и Система</span>
+            </button>
+
+            <div class="spacer"></div>
+
+            <div class="side-settings">
+                <div class="side-row">
+                    <span id="lbl-theme">Тема</span>
+                    <div class="seg-ctrl">
+                        <button class="seg-btn" id="th-dark" onclick="setTheme('dark')">Тёмн</button>
+                        <button class="seg-btn" id="th-light" onclick="setTheme('light')">Свет</button>
+                        <button class="seg-btn" id="th-auto" onclick="setTheme('auto')">Авто</button>
+                    </div>
+                </div>
+                <div class="side-row">
+                    <span id="lbl-lang">Язык</span>
+                    <div class="seg-ctrl">
+                        <button class="seg-btn" id="lg-ru" onclick="setLang('ru')">RU</button>
+                        <button class="seg-btn" id="lg-en" onclick="setLang('en')">EN</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="donate-btn" id="btn-donate" onclick="ipcRenderer.send('open-donate')">Поддержать</button>
+        </div>
+
+        <div class="content">
+            <div id="tab-opt" class="tab active"></div>
+            <div id="tab-bloat" class="tab"></div>
+            <div id="tab-exp" class="tab"></div>
+            <div id="tab-diag" class="tab"></div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        let curLang = localStorage.getItem('fkhub_lang') || 'ru';
+        let curTheme = localStorage.getItem('fkhub_theme') || 'auto';
+        let lastStatus = null;
+        let isBusy = false;
+
+        const i18n = {
+            ru: {
+                navOpt: 'Оптимизация',
+                navBloat: 'Программы',
+                navExp: 'Проводник',
+                navDiag: 'Сеть и Система',
+                lblTheme: 'Тема',
+                thDark: 'Тёмн',
+                thLight: 'Свет',
+                thAuto: 'Авто',
+                lblLang: 'Язык',
+                donate: 'Поддержать',
+                applyAll: 'Применить все',
+                resetAll: 'Сбросить все',
+                cleanTemp: 'Очистить Temp и кэш шейдеров',
+                removeBloat: 'Удалить мусор (кроме Калькулятора и Ножниц)',
+                restoreBloat: 'Вернуть все программы',
+                restartExp: 'Перезапустить Проводник',
+                on: 'Вкл.',
+                off: 'Откл.',
+                installed: 'Установлено',
+                removed: 'Удалено',
+                installing: 'Установка...',
+                removing: 'Удаление...',
+                applying: 'Применение...',
+                running: 'Выполнение...',
+                done: 'Готово ✓'
+            },
+            en: {
+                navOpt: 'Optimization',
+                navBloat: 'Apps',
+                navExp: 'Explorer',
+                navDiag: 'Network & System',
+                lblTheme: 'Theme',
+                thDark: 'Dark',
+                thLight: 'Light',
+                thAuto: 'Auto',
+                lblLang: 'Language',
+                donate: 'Donate',
+                applyAll: 'Apply All',
+                resetAll: 'Reset All',
+                cleanTemp: 'Clean Temp & Shader Cache',
+                removeBloat: 'Remove Bloatware (keep Calc & Snip)',
+                restoreBloat: 'Restore All Apps',
+                restartExp: 'Restart Explorer',
+                on: 'On',
+                off: 'Off',
+                installed: 'Installed',
+                removed: 'Removed',
+                installing: 'Installing...',
+                removing: 'Removing...',
+                applying: 'Applying...',
+                running: 'Running...',
+                done: 'Done ✓'
+            }
+        };
+
+        const optGroups = [
+            {
+                ru: 'Производительность и службы',
+                en: 'Performance & Services',
+                items: [
+                    { id: 'uwp', ru: 'Отключить фоновые UWP-приложения', en: 'Disable background UWP apps' },
+                    { id: 'do', ru: 'Отключить фоновые службы (WerSvc, MapsBroker, DO)', en: 'Disable background services (WerSvc, MapsBroker, DO)' },
+                    { id: 'edge', ru: 'Отключить фоновый запуск браузера Edge', en: 'Disable Edge background startup boost' },
+                    { id: 'hiber', ru: 'Отключить режим гибернации', en: 'Disable hibernation mode' }
+                ]
+            },
+            {
+                ru: 'Конфиденциальность и интерфейс',
+                en: 'Privacy & Interface',
+                items: [
+                    { id: 'telem', ru: 'Отключить телеметрию и рекламный идентификатор', en: 'Disable telemetry & advertising ID' },
+                    { id: 'copilot', ru: 'Отключить искусственный интеллект Copilot', en: 'Disable Windows Copilot AI' },
+                    { id: 'uac', ru: 'Отключить затемнение экрана UAC', en: 'Disable UAC secure desktop dimming' },
+                    { id: 'delay', ru: 'Ускорить раскрытие меню (20 мс)', en: 'Speed up menu show delay (20 ms)' },
+                    { id: 'wall', ru: 'Отключить сжатие качества JPEG-обоев', en: 'Disable JPEG wallpaper compression' },
+                    { id: 'rec', ru: 'Скрыть блок «Рекомендуем» в меню Пуск', en: 'Hide "Recommended" section in Start Menu' },
+                    { id: 'mouse', ru: 'Отключить акселерацию мыши', en: 'Disable mouse acceleration' },
+                    { id: 'sticky', ru: 'Отключить залипание клавиши Shift', en: 'Disable Shift Sticky Keys popup' }
+                ]
+            },
+            {
+                ru: 'Игры и сеть',
+                en: 'Gaming & Network',
+                items: [
+                    { id: 'dvr', ru: 'Отключить фоновую запись клипов (GameDVR)', en: 'Disable background game recording (GameDVR)' },
+                    { id: 'net', ru: 'Отключить сетевой троттлинг мультимедиа', en: 'Disable network multimedia throttling' },
+                    { id: 'timer', ru: 'Включить глобальный таймер Windows 11', en: 'Enable global high-precision timer resolution' }
+                ]
+            }
+        ];
+
+        const bloatGroups = [
+            {
+                ru: 'Предустановленные приложения',
+                en: 'Pre-installed Apps',
+                items: [
+                    { id: 'cam', ru: 'Камера', en: 'Windows Camera' },
+                    { id: 'dev', ru: 'Панель разработчика (Dev Home)', en: 'Dev Home' },
+                    { id: 'cop', ru: 'Microsoft 365 Copilot', en: 'Microsoft 365 Copilot' },
+                    { id: 'bing', ru: 'Поиск Bing в меню Пуск', en: 'Bing Web Search in Start Menu' },
+                    { id: 'clip', ru: 'Видеоредактор Clipchamp', en: 'Clipchamp Video Editor' },
+                    { id: 'news', ru: 'Новости Microsoft', en: 'Microsoft News' },
+                    { id: 'teams', ru: 'Microsoft Teams', en: 'Microsoft Teams' },
+                    { id: 'todo', ru: 'Microsoft To Do', en: 'Microsoft To Do' },
+                    { id: 'outlook', ru: 'Почта Outlook', en: 'Outlook for Windows' },
+                    { id: 'power', ru: 'Power Automate', en: 'Power Automate' },
+                    { id: 'quick', ru: 'Быстрая помощь', en: 'Quick Assist' },
+                    { id: 'snotes', ru: 'Записки на экране', en: 'Sticky Notes' },
+                    { id: 'feed', ru: 'Центр отзывов', en: 'Feedback Hub' },
+                    { id: 'voice', ru: 'Запись голоса', en: 'Sound Recorder' }
+                ]
+            },
+            {
+                ru: 'Полезные утилиты',
+                en: 'Useful Utilities',
+                items: [
+                    { id: 'calc', ru: 'Калькулятор Windows', en: 'Windows Calculator' },
+                    { id: 'snip', ru: 'Ножницы', en: 'Snipping Tool' }
+                ]
+            }
+        ];
+
+        const expGroups = [
+            {
+                ru: 'Навигация и боковая панель',
+                en: 'Navigation & Sidebar',
+                items: [
+                    { id: 'loc', ru: 'Открывать Проводник в разделе «Этот компьютер»', en: 'Open File Explorer to "This PC"' },
+                    { id: 'home', ru: 'Скрыть кнопку «Главная» в боковой панели', en: 'Hide "Home" from navigation pane' },
+                    { id: 'gal', ru: 'Скрыть кнопку «Галерея» в боковой панели', en: 'Hide "Gallery" from navigation pane' },
+                    { id: 'netw', ru: 'Скрыть кнопку «Сеть» в боковой панели', en: 'Hide "Network" from navigation pane' }
+                ]
+            },
+            {
+                ru: 'Интерфейс и отображение файлов',
+                en: 'Interface & File View',
+                items: [
+                    { id: 'prv', ru: 'Отключить историю недавних файлов и папок', en: 'Disable recent files & folders history' },
+                    { id: 'ctx', ru: 'Классическое контекстное меню ПКМ', en: 'Classic right-click context menu' },
+                    { id: 'ext', ru: 'Показывать расширения файлов', en: 'Show file extensions' },
+                    { id: 'hid', ru: 'Показывать скрытые файлы и папки', en: 'Show hidden files and folders' }
+                ]
+            }
+        ];
+
+        const diagGroups = [
+            {
+                ru: 'Система и активация',
+                en: 'System & Activation',
+                items: [
+                    { id: 'restore-point', ru: 'Создать точку восстановления системы', en: 'Create System Restore Point', btnRu: 'Создать', btnEn: 'Create' },
+                    { id: 'activate', ru: 'Активация Windows', en: 'Activate Windows', btnRu: 'Запустить', btnEn: 'Launch' }
+                ]
+            },
+            {
+                ru: 'Сеть и интернет',
+                en: 'Network & Internet',
+                items: [
+                    { id: 'flush-dns', ru: 'Очистить DNS-кэш Windows', en: 'Flush Windows DNS Cache', btnRu: 'Очистить', btnEn: 'Flush' },
+                    { id: 'reset-net', ru: 'Сброс сетевого стека', en: 'Reset Network Stack (Winsock & IP)', btnRu: 'Сбросить', btnEn: 'Reset' },
+                    { id: 'ping-test', ru: 'Быстрый тест задержки сети (Ping)', en: 'Quick Network Latency Test (Ping)', btnRu: 'Тест', btnEn: 'Test' },
+                    { id: 'ncpa', ru: 'Открыть настройки сетевых адаптеров', en: 'Open Network Adapters (ncpa.cpl)', btnRu: 'Открыть', btnEn: 'Open' }
+                ]
+            },
+            {
+                ru: 'Диагностика и компоненты',
+                en: 'Diagnostics & Runtimes',
+                items: [
+                    { id: 'chkdsk', ru: 'Быстрая проверка диска C: на ошибки', en: 'Quick Scan Drive C: for Errors (CHKDSK)', btnRu: 'Проверить', btnEn: 'Scan' },
+                    { id: 'sfc', ru: 'Проверка целостности системных файлов (SFC)', en: 'System File Checker (SFC /scannow)', btnRu: 'Проверить', btnEn: 'Verify' },
+                    { id: 'dism', ru: 'Восстановление образа системы (DISM)', en: 'Repair Windows System Image (DISM)', btnRu: 'Запустить', btnEn: 'Run' },
+                    { id: 'runtimes', ru: 'Установить все Visual C++, DirectX и DirectPlay', en: 'Install All Visual C++, DirectX & DirectPlay', btnRu: 'Установить', btnEn: 'Install' }
+                ]
+            }
+        ];
+
+        function applyTheme() {
+            const isLight = curTheme === 'light' || (curTheme === 'auto' && window.matchMedia('(prefers-color-scheme: light)').matches);
+            document.body.classList.toggle('light', isLight);
+            ['dark', 'light', 'auto'].forEach(m => {
+                const el = document.getElementById(`th-${m}`);
+                if (el) el.classList.toggle('active', curTheme === m);
+            });
+        }
+
+        function setTheme(mode) {
+            curTheme = mode;
+            localStorage.setItem('fkhub_theme', mode);
+            applyTheme();
+        }
+
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+            if (curTheme === 'auto') applyTheme();
+        });
+
+        function setLang(lang) {
+            curLang = lang;
+            localStorage.setItem('fkhub_lang', lang);
+            ['ru', 'en'].forEach(l => {
+                const el = document.getElementById(`lg-${l}`);
+                if (el) el.classList.toggle('active', curLang === l);
+            });
+            const t = i18n[curLang];
+            document.getElementById('nav-opt').innerText = t.navOpt;
+            document.getElementById('nav-bloat').innerText = t.navBloat;
+            document.getElementById('nav-exp').innerText = t.navExp;
+            document.getElementById('nav-diag').innerText = t.navDiag;
+            document.getElementById('lbl-theme').innerText = t.lblTheme;
+            document.getElementById('th-dark').innerText = t.thDark;
+            document.getElementById('th-light').innerText = t.thLight;
+            document.getElementById('th-auto').innerText = t.thAuto;
+            document.getElementById('lbl-lang').innerText = t.lblLang;
+            document.getElementById('btn-donate').innerText = t.donate;
+
+            renderLists();
+            if (lastStatus) applyStatusToDOM(lastStatus);
+        }
+
+        function renderGroup(type, groups, onTxt, offTxt) {
+            return groups.map(g => `
+                <div class="group">
+                    <div class="group-title">${g[curLang]}</div>
+                    <div class="group-list">
+                        ${g.items.map(i => cardHTML(type, i.id, i[curLang], onTxt, offTxt)).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderLists() {
+            const t = i18n[curLang];
+            document.getElementById('tab-opt').innerHTML = `
+                <div class="top-actions">
+                    <button class="act-btn" onclick="batchOpt(true, this)">${t.applyAll}</button>
+                    <button class="act-btn" onclick="batchOpt(false, this)">${t.resetAll}</button>
+                    <button class="act-btn amber" onclick="runAct('clean-temp', this)">${t.cleanTemp}</button>
+                </div>
+                ` + renderGroup('opt', optGroups, t.on, t.off);
+
+            document.getElementById('tab-bloat').innerHTML = `
+                <div class="top-actions">
+                    <button class="act-btn coral" onclick="batchBloat(false, this)">${t.removeBloat}</button>
+                    <button class="act-btn" onclick="batchBloat(true, this)">${t.restoreBloat}</button>
+                </div>
+                ` + renderGroup('bloat', bloatGroups, t.installed, t.removed);
+
+            document.getElementById('tab-exp').innerHTML = `
+                <div class="top-actions">
+                    <button class="act-btn" onclick="batchExp(true, this)">${t.applyAll}</button>
+                    <button class="act-btn" onclick="batchExp(false, this)">${t.resetAll}</button>
+                    <button class="act-btn amber" onclick="runAct('restart-exp', this)">${t.restartExp}</button>
+                </div>
+                ` + renderGroup('exp', expGroups, t.on, t.off);
+
+            document.getElementById('tab-diag').innerHTML = diagGroups.map(g => `
+                <div class="group">
+                    <div class="group-title">${g[curLang]}</div>
+                    <div class="group-list">
+                        ${g.items.map(a => `
+                            <div class="card">
+                                <span>${a[curLang]}</span>
+                                <button class="act-btn" onclick="runAct('${a.id}', this)">${curLang === 'ru' ? a.btnRu : a.btnEn}</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function cardHTML(type, id, name, onTxt, offTxt) {
+            return `
+            <div class="card">
+                <span>${name}</span>
+                <label class="toggle-wrap">
+                    <span class="state-txt" id="txt-${type}-${id}" data-on="${onTxt}" data-off="${offTxt}">${offTxt}</span>
+                    <input type="checkbox" id="chk-${type}-${id}" onchange="onToggle('${type}', '${id}', this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>`;
+        }
+
+        function setLoadingState(txtEl, label) {
+            txtEl.classList.add('loading');
+            txtEl.innerHTML = `<span class="spinner"></span><span>${label}</span>`;
+        }
+
+        function applyStatusToDOM(st) {
+            for (const [type, group] of Object.entries(st)) {
+                for (const [id, val] of Object.entries(group)) {
+                    const chk = document.getElementById(`chk-${type}-${id}`);
+                    const txt = document.getElementById(`txt-${type}-${id}`);
+                    if (chk && txt && !chk.disabled) {
+                        chk.checked = Boolean(val);
+                        txt.classList.remove('loading');
+                        txt.innerText = val ? txt.dataset.on : txt.dataset.off;
+                    }
+                }
+            }
+        }
+
+        async function refreshStatus(includeBloat = false) {
+            const st = await ipcRenderer.invoke('get-status', includeBloat);
+            if (!st) return false;
+            lastStatus = Object.assign(lastStatus || {}, st);
+            applyStatusToDOM(st);
+            return true;
+        }
+
+        async function onToggle(type, id, val) {
+            const chk = document.getElementById(`chk-${type}-${id}`);
+            const txt = document.getElementById(`txt-${type}-${id}`);
+            const t = i18n[curLang];
+            isBusy = true;
+            chk.disabled = true;
+
+            if (type === 'bloat') {
+                setLoadingState(txt, val ? t.installing : t.removing);
+            } else {
+                setLoadingState(txt, t.applying);
+            }
+
+            try {
+                await ipcRenderer.invoke(`toggle-${type}`, id, val);
+            } finally {
+                chk.disabled = false;
+                isBusy = false;
+                const ok = await refreshStatus(type === 'bloat');
+                if (!ok) {
+                    txt.classList.remove('loading');
+                    txt.innerText = chk.checked ? txt.dataset.on : txt.dataset.off;
+                }
+            }
+        }
+
+        async function batchOpt(val, btn) {
+            const old = btn.innerText;
+            const t = i18n[curLang];
+            isBusy = true;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span><span>${t.applying}</span>`;
+            try {
+                for (const g of optGroups) {
+                    for (const i of g.items) {
+                        const txt = document.getElementById(`txt-opt-${i.id}`);
+                        if (txt) setLoadingState(txt, t.applying);
+                        await ipcRenderer.invoke('toggle-opt', i.id, val);
+                    }
+                }
+            } finally {
+                isBusy = false;
+                await refreshStatus(false);
+                btn.innerText = old;
+                btn.disabled = false;
+            }
+        }
+
+        async function batchExp(val, btn) {
+            const old = btn.innerText;
+            const t = i18n[curLang];
+            isBusy = true;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span><span>${t.applying}</span>`;
+            try {
+                for (const g of expGroups) {
+                    for (const i of g.items) {
+                        const txt = document.getElementById(`txt-exp-${i.id}`);
+                        if (txt) setLoadingState(txt, t.applying);
+                        await ipcRenderer.invoke('toggle-exp', i.id, val);
+                    }
+                }
+                await ipcRenderer.invoke('run-action', 'restart-exp');
+            } finally {
+                isBusy = false;
+                await refreshStatus(false);
+                btn.innerText = old;
+                btn.disabled = false;
+            }
+        }
+
+        async function batchBloat(install, btn) {
+            const old = btn.innerText;
+            const t = i18n[curLang];
+            isBusy = true;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span><span>${install ? t.installing : t.removing}</span>`;
+            try {
+                for (const g of bloatGroups) {
+                    for (const i of g.items) {
+                        if (!install && (i.id === 'calc' || i.id === 'snip')) continue;
+                        const txt = document.getElementById(`txt-bloat-${i.id}`);
+                        if (txt) setLoadingState(txt, install ? t.installing : t.removing);
+                        await ipcRenderer.invoke('toggle-bloat', i.id, install);
+                    }
+                }
+            } finally {
+                isBusy = false;
+                await refreshStatus(true);
+                btn.innerText = old;
+                btn.disabled = false;
+            }
+        }
+
+        async function runAct(id, btn) {
+            const old = btn ? btn.innerText : '';
+            const t = i18n[curLang];
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="spinner"></span><span>${t.running}</span>`;
+            }
+            try {
+                await ipcRenderer.invoke('run-action', id);
+                if (btn) {
+                    btn.innerText = t.done;
+                    btn.style.borderColor = '#2ecc71';
+                    btn.style.color = '#2ecc71';
+                    setTimeout(() => {
+                        btn.innerText = old;
+                        btn.style.borderColor = '';
+                        btn.style.color = '';
+                        btn.disabled = false;
+                    }, 1800);
+                }
+            } catch {
+                if (btn) {
+                    btn.innerText = old;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function showTab(id, btn) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${id}`).classList.add('active');
+            btn.classList.add('active');
+            if (!isBusy) {
+                refreshStatus(id === 'bloat');
+            }
+        }
+
+        applyTheme();
+        setLang(curLang);
+        refreshStatus(false).then(() => refreshStatus(true));
+
+        window.addEventListener('focus', () => {
+            if (!isBusy) {
+                const isBloatTab = document.getElementById('tab-bloat').classList.contains('active');
+                refreshStatus(isBloatTab);
+            }
+        });
+
+        setInterval(() => {
+            if (!isBusy && !document.hidden) {
+                refreshStatus(false);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
