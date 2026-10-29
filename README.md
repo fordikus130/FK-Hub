@@ -37,7 +37,7 @@ A compact and fast tool for comprehensive Windows optimization and network confi
 ## 🚀 Quick Start
 
 Go to the [releases](../../releases) page and download the latest installer:
-- `FK Hub Setup x.x.x.exe` (for Windows 10/11 x64)
+- `FK Hub.exe` (for Windows 10/11 x64)
 
 Upon first launch, the program will automatically request administrator privileges required to modify the registry and configure services. The application is managed through a user-friendly graphical interface.
 
